@@ -86,7 +86,8 @@ function Game() {
     const {order, setOrder} = useOrder()
 
   function handleClick(i) {
-    const current = history[history.length - 1];
+    const historyOfStep = history.slice(0, steps.stepNumber + 1);
+    const current = historyOfStep[historyOfStep.length - 1];
     const squares = current.squares.slice();
     const locations = [
       "[0,0]",
@@ -105,7 +106,7 @@ function Game() {
     squares[i] = steps.xIsNext ? "X" : "O";
     setHistory(
       [
-        ...history,
+        ...historyOfStep,
         {
           squares: squares,
           loc: locations[i],
@@ -114,7 +115,7 @@ function Game() {
       setSteps(
       {
         ...steps,
-        stepNumber: history.length,
+        stepNumber: historyOfStep.length,
         xIsNext: !steps.xIsNext
       },
     );
