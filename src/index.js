@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
@@ -13,60 +13,76 @@ function Square(props) {
   );
 }
 
-class Board extends React.Component {
-  renderSquare(i) {
-    return (
-      <Square
-        isWinning={this.props.winningSquares.includes(i)}
-        key={"square " + i}
-        value={this.props.squares[i]}
-        onClick={() => this.props.onClick(i)}
-      />
-    );
-  }
+function SquaresList({count, squares, winningSquares, onClick}) {
 
-  renderSquares(n) {
-    let squares = [];
-    for (let i = n; i < n + 3; i++) {
-      squares.push(this.renderSquare(i));
+    let squareCount = [];
+    for (let i = count; i < count + 3; i++) {
+        squareCount.push(i);
     }
-    return squares;
-  }
 
-  renderRows(i) {
-    return <div className="board-row">{this.renderSquares(i)}</div>;
-  }
-
-  render() {
     return (
-      <div>
-        {this.renderRows(0)}
-        {this.renderRows(3)}
-        {this.renderRows(6)}
-      </div>
-    );
-  }
+        <div className="board-row"> 
+            {
+                squareCount.map((i) => {
+                    return (
+                    <Square
+                    isWinning={winningSquares.includes(i)}
+                    key={"square " + i}
+                    value={squares[i]}
+                    onClick={() => onClick(i)}
+                  />
+                )})
+            }
+        
+        </div>
+    )
 }
 
-class Game extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      history: [
+function Board(props) {
+    return (
+        <div>
+            <SquaresList count={0} {...props} />
+            <SquaresList count={3} {...props} />
+            <SquaresList count={6} {...props} />
+        </div>
+    );
+}
+
+function useHistory() {
+    const [history, setHistory] = useState([
         {
           squares: Array(9).fill(null),
         },
-      ],
-      stepNumber: 0,
-      xIsNext: true,
-      isDescending: true,
-      isWinning: false,
-    };
-  }
+      ])
+      return {history, setHistory}
+}
 
-  // slice() -> crates a copy of the squares array to modify instead of modifying the existing array
-  handleClick(i) {
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
+function useSteps() {
+    const [steps, setSteps] = useState({stepNumber:0, xIsNext:true, isWinning:false})
+    return {steps, setSteps}
+}
+
+function useOrder() {
+    const [order, setOrder] = useState(true)
+    return {order, setOrder}
+}
+
+function Moves({move, steps, desc, jumpTo}) {
+    return (
+    <li key={move}>
+        <button onClick={() => jumpTo(move)}>
+          {move === steps.stepNumber ? <b>{desc}</b> : desc}
+        </button>
+    </li>
+    );
+}
+
+function Game() {
+    const {history, setHistory} = useHistory()
+    const {steps, setSteps} = useSteps()
+    const {order, setOrder} = useOrder()
+
+function handleClick(i) {
     const current = history[history.length - 1];
     const squares = current.squares.slice();
     const locations = [
@@ -83,82 +99,81 @@ class Game extends React.Component {
     if (calculateWinner(squares) || squares[i]) {
       return;
     }
-    squares[i] = this.state.xIsNext ? "X" : "O";
-    this.setState({
-      history: history.concat([
+    squares[i] = steps.xIsNext ? "X" : "O";
+    setHistory(
+      [...history,
         {
           squares: squares,
           loc: locations[i],
         },
-      ]),
-      stepNumber: history.length,
-      xIsNext: !this.state.xIsNext,
-    });
+      ]);
+      setSteps(
+      {
+        ...steps,
+        stepNumber: history.length,
+        xIsNext: !steps.xIsNext
+      },
+    );
   }
 
-  jumpTo(step) {
-    this.setState({
+  function jumpTo(step) {
+    setSteps({
+      ...steps,
       stepNumber: step,
       xIsNext: step % 2 === 0,
     });
   }
 
-  sortHistory() {
-    this.setState({
-      isDescending: !this.state.isDescending,
+  function sortHistory() {
+    setOrder({
+      isDescending: !order.isDescending,
     });
   }
 
-  render() {
-    const history = this.state.history;
-    const current = history[this.state.stepNumber];
-    const winner = calculateWinner(current.squares);
+  const current = history[steps.stepNumber];
+  const winner = calculateWinner(current.squares);
 
-    const moves = history.map((step, move) => {
-      const desc = move
-        ? "Go to move #" + move + " at " + history[move].loc
-        : "Go to game start";
+  const moves = history.map((step, move) => {
+    const desc = move
+      ? "Go to move #" + move + " at " + history[move].loc
+      : "Go to game start";
 
-      return (
-        <li key={move}>
-          <button onClick={() => this.jumpTo(move)}>
-            {move === this.state.stepNumber ? <b>{desc}</b> : desc}
-          </button>
-        </li>
-      );
-    });
+    return (
+        <Moves move={move} steps={steps} desc={desc} jumpTo={jumpTo}/>
+    );
+  });
 
     let status;
     if (winner) {
-      status = "Winner: " + winner;
+        status = "Winner: " + winner.player;
     } else if (!current.squares.includes(null)) {
-      status = "Cat's Game!";
+        status = "Cat's Game!";
     } else {
-      status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+        status = "Next player: " + (steps.xIsNext ? "X" : "O");
     }
 
     return (
-      <div className="game">
+        <div className="game">
         <div className="game-board">
-          <Board
+            <Board
             squares={current.squares}
-            onClick={(i) => this.handleClick(i)}
+            onClick={(i) => handleClick(i)}
             winningSquares={winner ? winner.line : []}
-          />
+            />
         </div>
         <div className="game-info">
-          <div>{status}</div>
-          <ol>{this.state.isDescending ? moves : moves.reverse()}</ol>
+            <div>{status}</div>
+            <ol>{order.isDescending ? moves : moves.reverse()}</ol>
         </div>
         <div>
-          <button onClick={() => this.sortHistory()}>
-            Sort by: {this.state.isDescending ? "Descending" : "Ascending"}
-          </button>
+            <button onClick={() => sortHistory()}>
+            Sort by: {order.isDescending ? "Descending" : "Ascending"}
+            </button>
         </div>
-      </div>
+        </div>
     );
-  }
 }
+
 
 // ========================================
 
