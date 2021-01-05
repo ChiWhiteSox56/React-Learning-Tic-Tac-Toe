@@ -129,12 +129,6 @@ function Game() {
     });
   }
 
-  function sortHistory() {
-    setOrder({
-      isDescending: !order.isDescending,
-    });
-  }
-
   const current = history[steps.stepNumber];
   const winner = calculateWinner(current.squares);
 
@@ -171,7 +165,7 @@ function Game() {
               <ol>{order.isDescending ? moves : moves.reverse()}</ol>
           </div>
           <div>
-            <button onClick={() => sortHistory()}>
+            <button onClick={() => setOrder({ isDescending: !order.isDescending })}>
               Sort by: {order.isDescending ? "Descending" : "Ascending"}
             </button>
           </div>
